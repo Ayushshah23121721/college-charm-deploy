@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Student Management System" },
       { name: "description", content: "Simple Student Management System — add, view, update, delete and search students." },
-      { name: "author", content: "College Project" },
+      { name: "author", content: "student  management system" },
       { property: "og:title", content: "Student Management System" },
       { property: "og:description", content: "Simple Student Management System — add, view, update, delete and search students." },
       { property: "og:type", content: "website" },
@@ -132,7 +132,7 @@ function RootComponent() {
               </div>
               <div>
                 <h1 className="text-base font-semibold leading-tight">Student Management System</h1>
-                <p className="text-xs text-muted-foreground">College Project Demo</p>
+                <p className="text-xs text-muted-foreground">student management  system Demo</p>
               </div>
             </Link>
             <nav className="flex flex-wrap gap-1">
