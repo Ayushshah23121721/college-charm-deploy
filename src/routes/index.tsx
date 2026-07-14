@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StudentManager } from "@/components/StudentManager";
+import { Dashboard } from "@/components/Dashboard";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Dashboard — Student Management System" },
+      { name: "description", content: "Overview of students, attendance, and grades." },
+    ],
+  }),
+  component: Dashboard,
 });
-
-function Index() {
-  return <StudentManager />;
-}
