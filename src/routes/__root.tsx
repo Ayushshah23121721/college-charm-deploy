@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { GraduationCap, LayoutDashboard, Users, ClipboardCheck, BookOpen } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -122,8 +123,42 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="min-h-screen bg-background text-foreground">
+        <header className="border-b border-border bg-card print:hidden">
+          <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <Link to="/" className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-base font-semibold leading-tight">Student Management System</h1>
+                <p className="text-xs text-muted-foreground">College Project Demo</p>
+              </div>
+            </Link>
+            <nav className="flex flex-wrap gap-1">
+              <NavItem to="/" icon={<LayoutDashboard className="h-4 w-4" />} label="Dashboard" />
+              <NavItem to="/students" icon={<Users className="h-4 w-4" />} label="Students" />
+              <NavItem to="/attendance" icon={<ClipboardCheck className="h-4 w-4" />} label="Attendance" />
+              <NavItem to="/grades" icon={<BookOpen className="h-4 w-4" />} label="Grades" />
+            </nav>
+          </div>
+        </header>
+        <Outlet />
+      </div>
     </QueryClientProvider>
+  );
+}
+
+function NavItem({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
+  return (
+    <Link
+      to={to}
+      activeOptions={{ exact: to === "/" }}
+      activeProps={{ className: "bg-primary text-primary-foreground hover:bg-primary/90" }}
+      className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+    >
+      {icon}
+      {label}
+    </Link>
   );
 }
