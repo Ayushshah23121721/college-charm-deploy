@@ -1,53 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
-import { GraduationCap, Plus, Search, Pencil, Trash2, X, Users } from "lucide-react";
-
-type Student = {
-  id: string;
-  name: string;
-  email: string;
-  course: string;
-  year: string;
-};
-
-const STORAGE_KEY = "sms.students.v1";
-
-const SEED: Student[] = [
-  { id: "S001", name: "Aarav Sharma", email: "aarav@college.edu", course: "Computer Science", year: "2" },
-  { id: "S002", name: "Priya Patel", email: "priya@college.edu", course: "Electronics", year: "3" },
-  { id: "S003", name: "Rahul Verma", email: "rahul@college.edu", course: "Mechanical", year: "1" },
-];
-
-function loadStudents(): Student[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return SEED;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : SEED;
-  } catch {
-    return SEED;
-  }
-}
+import { useMemo, useRef, useState } from "react";
+import { Plus, Search, Pencil, Trash2, X, Upload, Download, Printer } from "lucide-react";
+import {
+  useLocalStore,
+  StoreKeys,
+  SEED_STUDENTS,
+  toCSV,
+  parseCSV,
+  downloadFile,
+  type Student,
+} from "@/lib/sms-store";
 
 const emptyForm: Student = { id: "", name: "", email: "", course: "", year: "" };
 
 export function StudentManager() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [students, setStudents] = useLocalStore<Student[]>(StoreKeys.students, SEED_STUDENTS);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Student>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    setStudents(loadStudents());
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
-  }, [students, hydrated]);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -99,28 +71,49 @@ export function StudentManager() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold">Student Management System</h1>
-              <p className="text-xs text-muted-foreground">College Project Demo</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span>{students.length} students</span>
-          </div>
-        </div>
-      </header>
+  function exportCSV() {
+    const csv = toCSV(students as unknown as Record<string, string>[]);
+    downloadFile(`students-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCSV(String(reader.result));
+      const imported: Student[] = rows
+        .filter((r) => r.id && r.name)
+        .map((r) => ({
+          id: r.id,
+          name: r.name,
+          email: r.email || "",
+          course: r.course || "",
+          year: r.year || "1",
+        }));
+      setStudents((prev) => {
+        const map = new Map(prev.map((s) => [s.id, s]));
+        imported.forEach((s) => map.set(s.id, s));
+        return Array.from(map.values());
+      });
+      alert(`Imported ${imported.length} students.`);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  function printList() {
+    window.print();
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mb-6 flex flex-col gap-3">
+        <div>
+          <h2 className="text-2xl font-semibold">Students</h2>
+          <p className="text-sm text-muted-foreground">{students.length} students on record</p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -130,13 +123,26 @@ export function StudentManager() {
               className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
             />
           </div>
-          <button
-            onClick={openAdd}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" /> Add Student
-          </button>
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={importCSV} />
+            <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent">
+              <Upload className="h-4 w-4" /> Import
+            </button>
+            <button onClick={exportCSV} className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent">
+              <Download className="h-4 w-4" /> Export
+            </button>
+            <button onClick={printList} className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent">
+              <Printer className="h-4 w-4" /> Print
+            </button>
+            <button
+              onClick={openAdd}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" /> Add Student
+            </button>
+          </div>
         </div>
+      </div>
 
         <div className="overflow-hidden rounded-lg border border-border bg-card">
           <div className="overflow-x-auto">
@@ -148,7 +154,7 @@ export function StudentManager() {
                   <th className="px-4 py-3 text-left font-medium">Email</th>
                   <th className="px-4 py-3 text-left font-medium">Course</th>
                   <th className="px-4 py-3 text-left font-medium">Year</th>
-                  <th className="px-4 py-3 text-right font-medium">Actions</th>
+                  <th className="px-4 py-3 text-right font-medium print:hidden">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,7 +172,7 @@ export function StudentManager() {
                       <td className="px-4 py-3 text-muted-foreground">{s.email}</td>
                       <td className="px-4 py-3">{s.course}</td>
                       <td className="px-4 py-3">{s.year}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 print:hidden">
                         <div className="flex justify-end gap-1">
                           <button
                             onClick={() => openEdit(s)}
@@ -192,10 +198,9 @@ export function StudentManager() {
           </div>
         </div>
 
-        <p className="mt-4 text-xs text-muted-foreground">
-          Data is saved locally in your browser (localStorage). No server required.
+        <p className="mt-4 text-xs text-muted-foreground print:hidden">
+          CSV format: <code>id,name,email,course,year</code>. Data is saved locally in your browser.
         </p>
-      </main>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setOpen(false)}>
