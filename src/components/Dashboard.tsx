@@ -58,7 +58,7 @@ export function Dashboard() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
       <h2 className="mb-2 text-2xl font-semibold">Dashboard</h2>
-      <p className="mb-6 text-sm text-muted-foreground">A quick snapshot of your college data.</p>
+      <p className="mb-6 text-sm text-muted-foreground">A quick snapshot of your student data.</p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total Students" value={students.length} icon={<Users className="h-5 w-5" />} />
